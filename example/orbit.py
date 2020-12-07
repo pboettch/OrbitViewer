@@ -27,10 +27,14 @@ from PySide2.QtWidgets import (
     QCheckBox,
     QLineEdit,
     QLabel,
-
+    QSizePolicy,
 )
 
-from PySide2.QtCore import Signal, Qt, Slot
+from PySide2.QtGui import QVector3D, QFont, QQuaternion
+
+from PySide2.QtDataVisualization import QtDataVisualization as QtDV
+
+from PySide2.QtCore import Signal, Qt, Slot, QSize
 
 
 class _BaseWidget(QWidget):
@@ -67,18 +71,6 @@ class _BaseWidget(QWidget):
 
         return edit
 
-
-class SphereWidget(_BaseWidget):
-    def __init__(self, x: float, y: float, z: float, d: float, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self._d = self._add_labeled_edit(d, "Diameter")
-        self._x = self._add_labeled_edit(x, "X")
-        self._y = self._add_labeled_edit(y, "Y")
-        self._z = self._add_labeled_edit(z, "Z")
-
-
-class CuboidWidget(_BaseWidget):
     def _add_labeled_edit_3(self, x, y, z: float, label: str):
         a = QLineEdit(str(x))
         a.textChanged.connect(self._updated)
@@ -98,6 +90,17 @@ class CuboidWidget(_BaseWidget):
 
         return a, b, c
 
+
+class SphereWidget(_BaseWidget):
+    def __init__(self, x: float, y: float, z: float, d: float, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._d = self._add_labeled_edit(d, "Diameter")
+        self._x, self._y, self._z = self._add_labeled_edit_3(x, y, z, "Center")
+
+
+class CuboidWidget(_BaseWidget):
+
     def __init__(self, x: float, y: float, z: float, w: float, h: float, d: float, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -109,8 +112,9 @@ class CuboidWidget(_BaseWidget):
 
 
 class Form(QDialog):
-    def __init__(self, parent=None):
-        super(Form, self).__init__(parent)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
         self.setWindowTitle("My Form")
 
         # Create layout and add widgets
@@ -126,12 +130,101 @@ class Form(QDialog):
         s.updated.connect(self.updated)
         layout.addWidget(s)
 
-        # Set dialog layout
-        self.setLayout(layout)
+
+        surface = QtDV.Q3DScatter()
+        surface.setFlags(surface.flags() ^ Qt.FramelessWindowHint)
+        surface.activeTheme().setType(QtDV.Q3DTheme.ThemeQt)
+
+        surface.setShadowQuality(QtDV.QAbstract3DGraph.ShadowQualityNone)
+        surface.scene().activeCamera().setCameraPreset(QtDV.Q3DCamera.CameraPresetFront)
+
+        surface.setOrthoProjection(True)
+        surface.activeTheme().setBackgroundEnabled(False)
+
+        surface.scene().activeCamera().setMaxZoomLevel(200.0)
+
+        surface.axisX().setRange(0.0, 1000.0)
+        surface.axisY().setRange(-600.0, 600.0)
+        surface.axisZ().setRange(0.0, 1000.0)
+        surface.axisX().setSegmentCount(5)
+        surface.axisY().setSegmentCount(6)
+        surface.axisZ().setSegmentCount(5)
+        #        // Only allow zooming at the center and limit the zoom to 200% to avoid clipping issues
+#        static_cast<Q3DInputHandler *>(m_graph->activeInputHandler())->setZoomAtTargetEnabled(false);
+
+
+        dataRow1 = [QVector3D(0.0, 0.1, 0.5), QVector3D(1.0, 0.5, 0.5)]
+        dataRow2 = [QVector3D(0.0, 1.8, 1.0), QVector3D(1.0, 1.2, 1.0)]
+        data = [dataRow1, dataRow2]
+
+        series = QtDV.QSurface3DSeries()
+        print("hello")
+        series.dataProxy().resetArray(data)
+        surface.addSeries(series)
+
+        warningLabel = QtDV.QCustom3DLabel(
+            "QCustom3DVolume is not supported with OpenGL ES2",
+            QFont(),
+            QVector3D(0.0, 0.5, 0.0),
+            QVector3D(1.5, 1.5, 0.0),
+            QQuaternion())
+        warningLabel.setPositionAbsolute(True)
+        warningLabel.setFacingCamera(True)
+        surface.addCustomItem(warningLabel)
+
+        self.surface = surface
+        container = QWidget.createWindowContainer(surface)
+
+        screenSize = surface.screen().size()
+
+        container.setMinimumSize(QSize(screenSize.width() / 3, screenSize.height() / 3))
+        container.setMaximumSize(screenSize)
+        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        container.setFocusPolicy(Qt.StrongFocus)
+
+        hlayout = QHBoxLayout(self)
+        hlayout.addWidget(container, 1)
+        hlayout.addLayout(layout)
+
 
     @Slot()
     def updated(self):
         print('something has been updated')
+
+
+class Toto(QDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.graph = QtDV.Q3DBars()
+        self.graph.setFlags(self.graph.flags() ^ Qt.FramelessWindowHint)
+
+        self.graph.rowAxis().setRange(0, 4)
+        self.graph.columnAxis().setRange(0, 4)
+
+        # Make some random data points
+        # dataSeries = [(i+1, randint(0, 99999)) for i in range(200)]
+
+        series = QtDV.QBar3DSeries()
+        d = [QtDV.QBarDataItem(v) for v in [1.0, 7.5, 5.0, 2.2]]
+
+        series.dataProxy().addRows([d])
+        self.graph.addSeries(series)
+
+        container = QWidget.createWindowContainer(self.graph)
+        screenSize = self.graph.screen().size()
+        container.setMinimumSize(QSize(screenSize.width() / 3, screenSize.height() / 3))
+        container.setMaximumSize(screenSize)
+        container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        container.setFocusPolicy(Qt.StrongFocus)
+
+        l = QVBoxLayout()
+        l.addWidget(QLineEdit("hello"))
+
+        layout = QHBoxLayout(self)
+        layout.addWidget(container, 1)
+        layout.addLayout(l)
+
 
 
 if __name__ == '__main__':
@@ -140,6 +233,45 @@ if __name__ == '__main__':
     # Create and show the form
     form = Form()
     form.show()
+
+    # toto = Toto()
+    # toto.show()
+
+    """
+    bars = QtDV.Q3DBars()
+    bars.setFlags(bars.flags() ^ Qt.FramelessWindowHint)
+
+    bars.rowAxis().setRange(0, 4)
+    bars.columnAxis().setRange(0, 4)
+
+    # Make some random data points
+    # dataSeries = [(i+1, randint(0, 99999)) for i in range(200)]
+
+    series = QtDV.QBar3DSeries()
+    d = [QtDV.QBarDataItem(v) for v in [1.0, 7.5, 5.0, 2.2]]
+
+    series.dataProxy().addRows([d])
+    bars.addSeries(series)
+
+    container = QWidget.createWindowContainer(bars)
+    screenSize = bars.screen().size()
+    container.setMinimumSize(QSize(screenSize.width() / 3, screenSize.height() / 3))
+    container.setMaximumSize(screenSize)
+    container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+    container.setFocusPolicy(Qt.StrongFocus)
+
+    l = QVBoxLayout()
+    l.addWidget(QLineEdit("hello"))
+
+    w = QDialog()
+
+    layout = QHBoxLayout(w)
+    layout.addWidget(container, 1)
+    layout.addLayout(l)
+
+    w.show()
+    """
+
     # Run the main Qt loop
     sys.exit(app.exec_())
 

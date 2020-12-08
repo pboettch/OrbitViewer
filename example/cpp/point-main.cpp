@@ -35,10 +35,9 @@ int main(int argc, char *argv[])
 	for (int i = -5; i < 6; i++) {
 		for (int j = -5; j < 6; j++) {
 			auto point_entity = new Qt3DCore::QEntity(points_root);
-			auto point = new Point();
+			auto point = new Point(QVector3D(i, j, 0));
 			auto point_transform = new Qt3DCore::QTransform();
 			auto point_material = new Qt3DExtras::QPhongMaterial();
-			point->setPosition(QVector3D(i, j, 0));
 
 			// this is my hacky way of setting point size
 			// the better way to do this is probably to create

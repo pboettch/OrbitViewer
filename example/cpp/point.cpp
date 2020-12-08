@@ -4,23 +4,19 @@
 
 using namespace Qt3DRender;
 
-Point::Point(QNode *parent)
+Point::Point(const QVector3D &position, QNode *parent)
     : QGeometryRenderer(parent)
 {
-	PointGeometry *geometry = new PointGeometry(this);
+	PointGeometry *geometry = new PointGeometry(position, this);
+
 	// tell OpenGL to expect a point primtiive
 	// https://www.khronos.org/opengl/wiki/Primitive#Point_primitives
 	setPrimitiveType(PrimitiveType::Points);
 	QGeometryRenderer::setGeometry(geometry);
 }
 
-Point::~Point() {}
-
-void Point::setPosition(QVector3D position)
+namespace
 {
-	static_cast<PointGeometry *>(geometry())->setPosition(position);
-}
-
 // set up a vertex buffer with our single vec3 position
 QByteArray createPointVertexData(QVector3D position)
 {
@@ -57,34 +53,10 @@ QByteArray createPointIndexData()
 
 	return indexBytes;
 }
+} // namespace
 
-PointGeometry::PointGeometry(PointGeometry::QNode *parent)
+PointGeometry::PointGeometry(const QVector3D &position, QNode *parent)
     : QGeometry(parent)
-{
-	this->init();
-}
-
-PointGeometry::~PointGeometry() {}
-
-void PointGeometry::setPosition(QVector3D position)
-{
-	this->position = position;
-	updateVertices();
-}
-
-void PointGeometry::updateVertices()
-{
-	positionAttribute->setCount(3);
-	vertexBuffer->setData(createPointVertexData(position));
-}
-
-void PointGeometry::updateIndices()
-{
-	indexAttribute->setCount(1);
-	indexBuffer->setData(createPointIndexData());
-}
-
-void PointGeometry::init()
 {
 	positionAttribute = new QAttribute();
 	indexAttribute = new QAttribute();

@@ -16,21 +16,7 @@ from PySide2.QtWidgets import (
 
 from PySide2.QtGui import (
     QVector3D,
-    QQuaternion,
-    QMatrix4x4,
     QColor,
-)
-
-from PySide2.QtCore import (
-    QObject,
-    Property,
-    Signal,
-
-    QPropertyAnimation,
-    QByteArray,
-
-    qFuzzyCompare,
-    QSize
 )
 
 
@@ -40,64 +26,41 @@ class PointGeometry(Qt3DRender.QGeometry):
 
         vertexBuffer = Qt3DRender.QBuffer(self)
         indexBuffer = Qt3DRender.QBuffer(self)
-        self.positionAttribute = Qt3DRender.QAttribute(self)
-        self.indexAttribute = Qt3DRender.QAttribute(self)
+        positionAttribute = Qt3DRender.QAttribute(self)
+        indexAttribute = Qt3DRender.QAttribute(self)
 
-        self.positionAttribute.setName(Qt3DRender.QAttribute.defaultPositionAttributeName())
-        self.positionAttribute.setVertexBaseType(Qt3DRender.QAttribute.Float)
-        self.positionAttribute.setVertexSize(3)
-        self.positionAttribute.setAttributeType(Qt3DRender.QAttribute.VertexAttribute)
-        self.positionAttribute.setBuffer(vertexBuffer)
-        self.positionAttribute.setByteStride(3 * 4)
-        self.positionAttribute.setCount(1)
+        positionAttribute.setName(Qt3DRender.QAttribute.defaultPositionAttributeName())
+        positionAttribute.setVertexBaseType(Qt3DRender.QAttribute.Float)
+        positionAttribute.setVertexSize(3)
+        positionAttribute.setAttributeType(Qt3DRender.QAttribute.VertexAttribute)
+        positionAttribute.setBuffer(vertexBuffer)
+        positionAttribute.setByteStride(0)
+        positionAttribute.setCount(1)
 
-        self.indexAttribute.setName(Qt3DRender.QAttribute.defaultJointIndicesAttributeName())
-        self.indexAttribute.setAttributeType(Qt3DRender.QAttribute.IndexAttribute)
-        self.indexAttribute.setVertexBaseType(Qt3DRender.QAttribute.UnsignedShort)
-        self.indexAttribute.setBuffer(indexBuffer)
-        self.indexAttribute.setCount(1)
+        indexAttribute.setName(Qt3DRender.QAttribute.defaultJointIndicesAttributeName())
+        indexAttribute.setAttributeType(Qt3DRender.QAttribute.IndexAttribute)
+        indexAttribute.setVertexBaseType(Qt3DRender.QAttribute.UnsignedShort)
+        indexAttribute.setBuffer(indexBuffer)
+        indexAttribute.setCount(1)
 
-        data = PointGeometry.createPointVertexData(position)
+        data = np.array(position.toTuple(), dtype=np.single)
+        vertexBuffer.setData(data.tobytes())
 
-        vertexBuffer.setData(data)
-
-        print([hex(c) for c in data])
-
-        index = PointGeometry.createPointIndexData()
+        index = struct.pack('H', 0)
         indexBuffer.setData(index)
-        print([hex(c) for c in index])
 
-        self.addAttribute(self.positionAttribute)
-        self.addAttribute(self.indexAttribute)
-
-    def createPointVertexData(position: QVector3D):
-        return struct.pack('3f', position.x(), position.y(), position.z())
-
-        # data = np.array((), dtype=np.single)
-        # assert len(data.tobytes()) == 12
-        # print([hex(c) for c in data.tobytes()])
-        # return data.tobytes()
-
-    def createPointIndexData():
-        return struct.pack('H', 0)
-
-        # data = np.array([0], dtype=np.uint16)
-        # assert len(data.tobytes()) == 2
-        # print(data)
-        # return data.tobytes()
+        self.addAttribute(positionAttribute)
+        self.addAttribute(indexAttribute)
 
 
 class Point(Qt3DRender.QGeometryRenderer):
     def __init__(self, position: QVector3D, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._geometry = PointGeometry(position)
-
-        # self._geometry = Qt3DExtras.QSphereGeometry()
-        # self._geometry.setRadius(0.3)
+        geometry = PointGeometry(position, self)
 
         self.setPrimitiveType(Qt3DRender.QGeometryRenderer.Points)
-        self.setGeometry(self._geometry)
+        self.setGeometry(geometry)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
@@ -115,7 +78,6 @@ if __name__ == "__main__":
         point = Qt3DCore.QEntity(root)
         pointMesh = Point(QVector3D(0, i, 0))
         pointTransform = Qt3DCore.QTransform()
-        pointTransform.setTranslation(QVector3D(0, i, 0))
         pointMaterial = Qt3DExtras.QPhongMaterial()
         pointMaterial.setDiffuse(QColor(255, 0, 0))
 

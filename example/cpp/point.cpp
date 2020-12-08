@@ -1,12 +1,6 @@
-// ============================
-// Point.cpp
-// ============================
 #include "point.h"
+
 #include <Qt3DRender/QAttribute>
-#include <Qt3DRender/QBuffer>
-#include <Qt3DRender/QBufferDataGenerator>
-#include <Qt3DRender/QPointSize>
-#include <limits>
 
 using namespace Qt3DRender;
 
@@ -64,62 +58,6 @@ QByteArray createPointIndexData()
 	return indexBytes;
 }
 
-// this functor is responsible for updating the vertex buffer
-// it is set as our data generator below
-class PointVertexBufferFunctor : public QBufferDataGenerator
-{
-public:
-	explicit PointVertexBufferFunctor(QVector3D position)
-	    : position(position) {}
-
-	~PointVertexBufferFunctor() {}
-
-	QByteArray operator()() Q_DECL_FINAL
-	{
-		return createPointVertexData(position);
-	}
-
-	bool operator==(const QBufferDataGenerator &other) const Q_DECL_FINAL
-	{
-		const PointVertexBufferFunctor *otherFunctor = functor_cast<PointVertexBufferFunctor>(&other);
-		if (otherFunctor != nullptr)
-			return (otherFunctor->position == position);
-		return false;
-	}
-
-	QT3D_FUNCTOR(PointVertexBufferFunctor)
-
-private:
-	QVector3D position;
-};
-
-// this functor is responsible for updating the index buffer
-// it is set as our data generator below
-class PointIndexBufferFunctor : public QBufferDataGenerator
-{
-public:
-	explicit PointIndexBufferFunctor() {}
-	~PointIndexBufferFunctor() {}
-
-	QByteArray operator()() Q_DECL_FINAL
-	{
-		return createPointIndexData();
-	}
-
-	bool operator==(const QBufferDataGenerator &other) const Q_DECL_FINAL
-	{
-		const PointIndexBufferFunctor *otherFunctor = functor_cast<PointIndexBufferFunctor>(&other);
-		if (otherFunctor != nullptr)
-			return (true);
-		return false;
-	}
-
-	QT3D_FUNCTOR(PointIndexBufferFunctor)
-
-private:
-	QSize resolution;
-};
-
 PointGeometry::PointGeometry(PointGeometry::QNode *parent)
     : QGeometry(parent)
 {
@@ -137,13 +75,13 @@ void PointGeometry::setPosition(QVector3D position)
 void PointGeometry::updateVertices()
 {
 	positionAttribute->setCount(3);
-	vertexBuffer->setDataGenerator(QSharedPointer<PointVertexBufferFunctor>::create(position));
+	vertexBuffer->setData(createPointVertexData(position));
 }
 
 void PointGeometry::updateIndices()
 {
 	indexAttribute->setCount(1);
-	indexBuffer->setDataGenerator(QSharedPointer<PointIndexBufferFunctor>::create());
+	indexBuffer->setData(createPointIndexData());
 }
 
 void PointGeometry::init()
@@ -176,10 +114,9 @@ void PointGeometry::init()
 	// Each primitive has 3 vertives
 	indexAttribute->setCount(1);
 
-	vertexBuffer->setDataGenerator(QSharedPointer<PointVertexBufferFunctor>::create(position));
-	indexBuffer->setDataGenerator(QSharedPointer<PointIndexBufferFunctor>::create());
+	vertexBuffer->setData(createPointVertexData(position));
+	indexBuffer->setData(createPointIndexData());
 
 	addAttribute(positionAttribute);
 	addAttribute(indexAttribute);
 }
-

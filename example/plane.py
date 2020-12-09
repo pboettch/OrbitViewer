@@ -200,11 +200,11 @@ if __name__ == "__main__":
     for i in range(2):
         plane = Qt3DCore.QEntity(root)
         # planeMesh = Qt3DExtras.QPlaneMesh()
-        planeMesh = Plane(800, 419, QSize(100, 100))
+        planeMesh = Plane(800, 419, QSize(100, 100), plane)
         # planeMesh.setWidth(10)
         # planeMesh.setHeight(10)
 
-        planeTransform = Qt3DCore.QTransform()
+        planeTransform = Qt3DCore.QTransform(plane)
         planeTransform.setTranslation(QVector3D(0, i, 0))
 
         # and glue some texture onto our sphere
@@ -213,21 +213,19 @@ if __name__ == "__main__":
         planeMaterial = Qt3DExtras.QTextureMaterial(plane)
         planeMaterial.setTexture(loader)
 
-#        planeMaterial = Qt3DExtras.QPhongMaterial()
-#        planeMaterial.setDiffuse(QColor(150, 150, 150))
-#
-#        for t in planeMaterial.effect().techniques():
-#            for rp in t.renderPasses():
-#                pointSize = Qt3DRender.QPointSize()
-#                pointSize.setSizeMode(Qt3DRender.QPointSize.SizeMode.Fixed)
-#                pointSize.setValue(4.0)
-#                rp.addRenderState(pointSize)
-#                e += [pointSize]
+        # planeMaterial = Qt3DExtras.QPhongMaterial(plane)
+        # planeMaterial.setDiffuse(QColor(150, 150, 150))
+
+        # for t in planeMaterial.effect().techniques():
+        #     for rp in t.renderPasses():
+        #         pointSize = Qt3DRender.QPointSize(plane)
+        #         pointSize.setSizeMode(Qt3DRender.QPointSize.SizeMode.Fixed)
+        #         pointSize.setValue(2.0)
+        #         rp.addRenderState(pointSize)
 
         plane.addComponent(planeMesh)
         plane.addComponent(planeTransform)
         plane.addComponent(planeMaterial)
-        e += [plane, planeMesh, planeTransform, planeMaterial, loader]
 
     # Camera
     camera = view.camera()
